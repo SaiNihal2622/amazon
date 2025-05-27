@@ -7,11 +7,6 @@ streamlit==1.45.1
 wordcloud==1.9.4
 seaborn==0.13.2
 textblob==0.18.0
-scikit-learn==1.4.2
-wheel
-setuptools
-
-
-
+scikit-learn==1.2.2  # Changed to a more stable version
 
 
