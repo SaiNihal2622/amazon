@@ -1,12 +1,13 @@
 import streamlit as st
 
-# Import the functions from your modules folder
-# Assuming these imports are correct and module files exist
+# Import all your modules
 from modules.overview_module import show_overview_dashboard
 from modules.sentiment_module import show_sentiment_dashboard
+# Assuming helpfulness_module.py exists and is correct. If not, you might need to create it.
 from modules.helpfulness_module import show_helpfulness_dashboard
 from modules.product_user_module import show_product_user_dashboard
 from modules.advanced_module import show_advanced_dashboard
+from modules.revenue_growth_module import show_revenue_growth_dashboard # <--- NEW MODULE IMPORT
 
 st.set_page_config(
     page_title="Amazon Fine Food Reviews Analytics",
@@ -95,7 +96,7 @@ div[data-testid="stMarkdownContainer"] p strong {
     justify-content: center;
     margin-bottom: 10px; /* Space before the button */
 }
-            /* Style for Plotly chart containers */
+/* Style for Plotly chart containers */
 div[data-testid="stPlotlyChart"] {
     border-radius: 15px; /* Match card border radius */
     box-shadow: 0 4px 15px rgba(0,0,0,0.08); /* Match card shadow */
@@ -232,12 +233,13 @@ if st.session_state.current_view == 'home':
     create_interactive_card(col2, 'sentiment', '😊', 'Sentiment Insights', 'Uncover common themes and emotional drivers in customer feedback for product refinement.', 'sentiment')
     create_interactive_card(col3, 'helpfulness', '👍', 'Helpfulness Deep Dive', 'Identify reviews that truly resonate with customers and understand their characteristics.', 'helpfulness')
 
-    # New row for the remaining cards, also using 3 columns to keep consistent sizing, even if one is empty
-    col4, col5, col_empty = st.columns(3) # col_empty is just for alignment
+    # New row for the remaining cards, ensuring all modules are displayed
+    # Now using 3 columns for the second row as well
+    col4, col5, col6 = st.columns(3)
 
     create_interactive_card(col4, 'product_user', '🛍️', 'Product & User Insights', 'Discover top-performing products, highly active users, and influential reviewer patterns.', 'product_user')
     create_interactive_card(col5, 'advanced', '🔬', 'Advanced Analytics', 'Perform custom keyword searches, analyze text length correlations, and explore future analytical directions.', 'advanced')
-    # No card in col_empty, it just helps maintain spacing/alignment for a uniform grid
+    create_interactive_card(col6, 'revenue_growth', '📈', 'Revenue Growth', 'Identify high-potential products, analyze performance trends, and uncover strategies for sales growth.', 'revenue_growth') # <--- NEW CARD
 
 
     st.markdown("---")
@@ -260,6 +262,8 @@ else:
     elif st.session_state.current_view == 'helpfulness':
         show_helpfulness_dashboard()
     elif st.session_state.current_view == 'product_user':
-            show_product_user_dashboard()
+        show_product_user_dashboard()
     elif st.session_state.current_view == 'advanced':
         show_advanced_dashboard()
+    elif st.session_state.current_view == 'revenue_growth': # <--- NEW MODULE LOGIC
+        show_revenue_growth_dashboard() # <--- NEW MODULE LOGIC

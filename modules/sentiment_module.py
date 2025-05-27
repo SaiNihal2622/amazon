@@ -6,7 +6,7 @@ import re
 import string
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import io # Used for in-memory image buffer
+import io
 import warnings
 import plotly.express as px
 import plotly.graph_objects as go
@@ -49,12 +49,10 @@ def clean_text_for_wordcloud(text):
 
 @st.cache_resource
 def generate_wordcloud(text_data, max_words=200):
-    # Use consistent figsize for matplotlib for better alignment
-    fig_height_px = 350 # This should align with the Plotly height
-    fig_width_px = 700 # Approx. double the height for landscape
+    fig_height_px = 350
+    fig_width_px = 700
 
-    # Convert pixels to inches for matplotlib figsize
-    dpi = 100 # Standard dpi
+    dpi = 100
     figsize_inches = (fig_width_px / dpi, fig_height_px / dpi)
 
     if not text_data:
@@ -62,8 +60,8 @@ def generate_wordcloud(text_data, max_words=200):
         ax.text(0.5, 0.5, "No data for word cloud.", ha='center', va='center', fontsize=20, color='gray')
         ax.axis('off')
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0.1) # Save to buffer
-        plt.close(fig) # Close the figure to free memory
+        fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0.1)
+        plt.close(fig)
         return buf, "No text data."
 
     stop_words = set(stopwords.words('english'))
@@ -89,13 +87,13 @@ def generate_wordcloud(text_data, max_words=200):
                           max_words=max_words, collocations=False,
                           colormap='viridis').generate(long_string)
 
-    fig, ax = plt.subplots(figsize=figsize_inches) # Use the defined figsize
+    fig, ax = plt.subplots(figsize=figsize_inches)
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.axis('off')
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0.1) # Save to buffer
-    plt.close(fig) # Close the figure immediately
-    return buf, long_string # Return the buffer
+    fig.savefig(buf, format="png", bbox_inches='tight', pad_inches=0.1)
+    plt.close(fig)
+    return buf, long_string
 
 def show_sentiment_dashboard():
     st.title("😊 Sentiment Insights: The Voice of Your Customer")
@@ -113,6 +111,19 @@ def show_sentiment_dashboard():
             df['SentimentCategory'] = df['Score'].map(sentiment_map)
             sentiment_counts = df['SentimentCategory'].value_counts()
 
+            # Insight Metric for Sentiment Distribution
+            total_reviews = sentiment_counts.sum()
+            positive_reviews_count = sentiment_counts.get('Positive', 0)
+            positive_percentage = (positive_reviews_count / total_reviews) * 100 if total_reviews > 0 else 0
+            st.markdown(f"""
+            <div style="background-color: #e6ffe6; border-left: 5px solid #4CAF50; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <p style="margin: 0; font-size: 1.1em; color: #2E7D32;">
+                    <b>{positive_percentage:.1f}%</b> of reviews are classified as <b>Positive</b>.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+
             sentiment_colors = {
                 'Positive': '#4CAF50',
                 'Neutral': '#FFD700',
@@ -121,18 +132,18 @@ def show_sentiment_dashboard():
             pie_colors = [sentiment_colors[cat] for cat in sentiment_counts.index]
 
             fig_sentiment = go.Figure(data=[go.Pie(labels=sentiment_counts.index,
-                                                   values=sentiment_counts.values,
-                                                   pull=[0.05 if cat == 'Negative' else 0 for cat in sentiment_counts.index],
-                                                   hole=0.4,
-                                                   marker=dict(colors=pie_colors),
-                                                   textinfo='percent+label',
-                                                   insidetextorientation='radial'
-                                                  )])
+                                                    values=sentiment_counts.values,
+                                                    pull=[0.05 if cat == 'Negative' else 0 for cat in sentiment_counts.index],
+                                                    hole=0.4,
+                                                    marker=dict(colors=pie_colors),
+                                                    textinfo='percent+label',
+                                                    insidetextorientation='radial'
+                                                   )])
             fig_sentiment.update_layout(title_text='Proportion of Sentiment Categories',
-                                        height=350, # Plotly height
-                                        margin=dict(l=20, r=20, t=50, b=20),
-                                        showlegend=True,
-                                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+                                         height=350,
+                                         margin=dict(l=20, r=20, t=50, b=20),
+                                         showlegend=True,
+                                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
             st.plotly_chart(fig_sentiment, use_container_width=True)
             st.info("💡 **Insight:** A high percentage of positive reviews indicates strong customer satisfaction. Focus on understanding the few negative ones for targeted improvements!")
 
@@ -150,21 +161,37 @@ def show_sentiment_dashboard():
             selected_time_filter = st.selectbox("Filter Sentiment Trend:", time_filter_options, key='sentiment_time_filter')
 
             filtered_sentiment_trend = sentiment_trend.copy()
+            time_offset = None
             if selected_time_filter == "Last 1 Year":
-                filtered_sentiment_trend = sentiment_trend[sentiment_trend['Date'] >= (pd.to_datetime(sentiment_trend['Date'].max()) - pd.DateOffset(years=1))]
+                time_offset = pd.DateOffset(years=1)
             elif selected_time_filter == "Last 3 Years":
-                filtered_sentiment_trend = sentiment_trend[sentiment_trend['Date'] >= (pd.to_datetime(sentiment_trend['Date'].max()) - pd.DateOffset(years=3))]
+                time_offset = pd.DateOffset(years=3)
             elif selected_time_filter == "Last 5 Years":
-                filtered_sentiment_trend = sentiment_trend[sentiment_trend['Date'] >= (pd.to_datetime(sentiment_trend['Date'].max()) - pd.DateOffset(years=5))]
+                time_offset = pd.DateOffset(years=5)
+
+            if time_offset:
+                filtered_sentiment_trend = sentiment_trend[sentiment_trend['Date'] >= (pd.to_datetime(sentiment_trend['Date'].max()) - time_offset)]
+
+            # Insight Metric for Sentiment Trend
+            avg_score_this_period = filtered_sentiment_trend['Average Score'].mean() if not filtered_sentiment_trend.empty else 0
+            period_text = selected_time_filter.lower()
+            st.markdown(f"""
+            <div style="background-color: #e0f2f7; border-left: 5px solid #00BCD4; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                <p style="margin: 0; font-size: 1.1em; color: #00838F;">
+                    Average sentiment score in the <b>{period_text}</b>: <b>{avg_score_this_period:.2f} / 5</b>.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
 
             fig_sentiment_trend = px.line(filtered_sentiment_trend,
-                                          x='Date',
-                                          y='Average Score',
-                                          title='Avg. Sentiment Score Over Time',
-                                          labels={'Date': 'Date', 'Average Score': 'Average Score'},
-                                          range_y=[1, 5],
-                                          height=350, # Plotly height
-                                          color_discrete_sequence=[px.colors.qualitative.Plotly[2]])
+                                           x='Date',
+                                           y='Average Score',
+                                           title='Avg. Sentiment Score Over Time',
+                                           labels={'Date': 'Date', 'Average Score': 'Average Score'},
+                                           range_y=[1, 5],
+                                           height=350,
+                                           color_discrete_sequence=[px.colors.qualitative.Plotly[2]])
             fig_sentiment_trend.update_layout(hovermode="x unified", margin=dict(l=20, r=20, t=50, b=20))
             st.plotly_chart(fig_sentiment_trend, use_container_width=True)
 
@@ -196,8 +223,8 @@ def show_sentiment_dashboard():
                 st.warning("No reviews found for the selected score range to generate a word cloud.")
             else:
                 wordcloud_image_buffer, _ = generate_wordcloud(sampled_text_data)
-                # Display the word cloud as an image, allowing Streamlit to handle sizing
-                st.image(wordcloud_image_buffer, use_column_width=True) # use_column_width for responsiveness
+                # Use use_container_width here as well
+                st.image(wordcloud_image_buffer, use_container_width=True)
 
             st.info("💡 **Insight:** Words like 'delicious', 'great' dominate positive reviews, while 'bad', 'disappointed' appear in negative ones. This directly informs product strengths and areas needing attention!")
 
@@ -219,14 +246,25 @@ def show_sentiment_dashboard():
                     product_sentiment_trend['Date'] = pd.to_datetime(product_sentiment_trend['YearMonth'])
                     product_sentiment_trend.sort_values('Date', inplace=True)
 
+                    # Insight Metric for Product-Specific Sentiment
+                    current_product_avg_score = product_sentiment_trend['Score'].iloc[-1] if not product_sentiment_trend.empty else 0
+                    st.markdown(f"""
+                    <div style="background-color: #e0f2f7; border-left: 5px solid #1976D2; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <p style="margin: 0; font-size: 1.1em; color: #1565C0;">
+                            Current average score for <b>{selected_product_id}</b>: <b>{current_product_avg_score:.2f} / 5</b>.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+
                     fig_product_sentiment = px.line(product_sentiment_trend,
-                                                    x='Date',
-                                                    y='Score',
-                                                    title=f'Avg. Score Trend for Product: {selected_product_id}',
-                                                    labels={'Date': 'Date', 'Score': 'Average Score'},
-                                                    range_y=[1, 5],
-                                                    height=350, # Set consistent height with other plots
-                                                    color_discrete_sequence=[px.colors.qualitative.D3[4]])
+                                                     x='Date',
+                                                     y='Score',
+                                                     title=f'Avg. Score Trend for Product: {selected_product_id}',
+                                                     labels={'Date': 'Date', 'Score': 'Average Score'},
+                                                     range_y=[1, 5],
+                                                     height=350,
+                                                     color_discrete_sequence=[px.colors.qualitative.D3[4]])
                     fig_product_sentiment.update_layout(hovermode="x unified", margin=dict(l=20, r=20, t=50, b=20))
                     st.plotly_chart(fig_product_sentiment, use_container_width=True)
 
